@@ -4,8 +4,8 @@ import requests
 
 app = Flask(__name__)
 
-TG_TOKEN = "7557103634:AAGB7r0yeUndYis1Y5C-IfZm8uzfsKlac00"
-TG_CHAT = "288476963"
+TG_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TG_CHAT = os.getenv("TELEGRAM_CHAT_ID")
 
 @app.route('/')
 def home():
