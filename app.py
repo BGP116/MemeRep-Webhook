@@ -1,6 +1,6 @@
 import os
-from flask import Flask, request, abort
 import requests
+from flask import Flask, request, abort
 
 app = Flask(__name__)
 
@@ -12,12 +12,6 @@ def home():
     return "MemeRep Webhook activo 🚀"
 
 @app.route('/helius-webhook', methods=['POST'])
-def helius_webhook():
-    auth = request.headers.get('Authorization')
-    if auth != "Bearer mi_token_secreto":
-        abort(401)
-
-    @app.route('/helius-webhook', methods=['POST'])
 def helius_webhook():
     auth = request.headers.get('Authorization')
     if auth != "Bearer mi_token_secreto":
@@ -50,3 +44,20 @@ def helius_webhook():
 def send_telegram(msg):
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
     requests.post(url, data={"chat_id": TG_CHAT, "text": msg})
+
+def fetch_token_data(mint):
+    try:
+        url = f"https://api.dexscreener.com/latest/dex/tokens/{mint}"
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+
+        pair = data.get("pairs", [{}])[0]
+        market_cap = float(pair.get("fdv", 0))
+        holders_proxy = int(pair.get("txCount24h", 0))  # Proxy de holders
+
+        return market_cap, holders_proxy
+    except Exception as e:
+        print(f"Error al obtener datos del token: {e}")
+        return None, None
+
