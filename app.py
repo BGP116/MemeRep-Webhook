@@ -17,19 +17,34 @@ def helius_webhook():
     if auth != "Bearer mi_token_secreto":
         abort(401)
 
+    @app.route('/helius-webhook', methods=['POST'])
+def helius_webhook():
+    auth = request.headers.get('Authorization')
+    if auth != "Bearer mi_token_secreto":
+        abort(401)
+
     data = request.get_json()
     for tx in data:
-        for inst in tx["transaction"]["message"]["instructions"]:
+        if not isinstance(tx, dict):
+            continue
+
+        # Detecta esquemas distintos
+        if "transaction" in tx and "message" in tx["transaction"]:
+            insts = tx["transaction"]["message"].get("instructions", [])
+        elif "instructions" in tx:
+            insts = tx.get("instructions", [])
+        else:
+            continue
+
+        for inst in insts:
             if inst.get("program") == "spl-token":
                 info = inst.get("parsed", {}).get("info", {})
                 mint = info.get("mint")
-
-                # Simulación de valores de market cap y holders (reemplazables por funciones reales)
-                mc = 120_000   # market cap ficticio
-                holders = 600  # número de holders ficticio
-
-                if mc < 200_000 and holders > 500:
-                    send_telegram(f"🔔 Nueva memecoin detectada:\nMint: {mint}\nMC: {mc}\nHolders: {holders}")
+                if mint:
+                    mc, holders_proxy = fetch_token_data(mint)
+                    if mc is not None and holders_proxy is not None:
+                        if mc < 50_000 and holders_proxy > 100:
+                            send_telegram(f"🔔 Nueva memecoin detectada:\nMint: {mint}\nMarket Cap: ${mc:,.0f}\nHolders aprox: {holders_proxy}")
     return "", 200
 
 def send_telegram(msg):
