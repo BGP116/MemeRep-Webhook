@@ -1,5 +1,9 @@
-from flask import Flask, request
+from flask import Flask, request 
 app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "MemeRep Webhook activo y funcionando 🚀"
 
 @app.route('/helius-webhook', methods=['POST'])
 def helius_webhook():
