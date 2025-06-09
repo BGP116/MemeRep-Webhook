@@ -18,7 +18,7 @@ def helius_webhook():
         abort(401)
 
     data = request.get_json()
-    for tx in data.get("transactions", []):
+    for tx in data:
         for inst in tx["transaction"]["message"]["instructions"]:
             if inst.get("program") == "spl-token":
                 info = inst.get("parsed", {}).get("info", {})
