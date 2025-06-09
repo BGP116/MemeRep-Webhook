@@ -1,18 +1,17 @@
 import os
-from flask import Flask, request, abort
 import requests
+from flask import Flask, request, abort
 import logging
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
 TG_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TG_CHAT = os.getenv("TELEGRAM_CHAT_ID")
 
-logging.basicConfig(level=logging.INFO)
-
 @app.route('/')
 def home():
-    return "Webhook activo"
+    return "Webhook activo 🚀"
 
 @app.route('/helius-webhook', methods=['POST'])
 def helius_webhook():
@@ -23,25 +22,28 @@ def helius_webhook():
     data = request.get_json()
     logging.info(f"📥 Webhook recibido: {data}")
 
+    enviado = False
     for tx in data:
-        instructions = []
-        if "transaction" in tx and "message" in tx["transaction"]:
-            instructions = tx["transaction"]["message"].get("instructions", [])
-        elif "instructions" in tx:
-            instructions = tx.get("instructions", [])
-
-        for inst in instructions:
+        instructions = tx.get("instructions") or tx.get("transaction", {}).get("message", {}).get("instructions", [])
+        for inst in instructions or []:
             if inst.get("program") == "spl-token":
-                info = inst.get("parsed", {}).get("info", {})
-                mint = info.get("mint")
+                mint = inst.get("parsed", {}).get("info", {}).get("mint")
                 if mint:
-                    send_telegram(f"🔔 Token detectado:\nMint: {mint}")
+                    msg = f"🚨 PRUEBA WEBHOOK -> mint: {mint}"
+                    logging.info("📤 Enviando Telegram de prueba")
+                    res = requests.post(
+                        f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
+                        data={"chat_id": TG_CHAT, "text": msg}
+                    )
+                    logging.info(f"🧾 Telegram respuesta: {res.status_code}, {res.text}")
+                    enviado = True
+
+    if not enviado:
+        msg = "ℹ️ Webhook recibido — no había instrucciones spl-token, pero este mensaje confirma funcionamiento."
+        res = requests.post(
+            f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
+            data={"chat_id": TG_CHAT, "text": msg}
+        )
+        logging.info(f"🧾 Telegram fallback: {res.status_code}, {res.text}")
 
     return "", 200
-
-def send_telegram(msg):
-    url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-    try:
-        requests.post(url, data={"chat_id": TG_CHAT, "text": msg})
-    except Exception as e:
-        logging.error(f"Error al enviar mensaje a Telegram: {e}")
