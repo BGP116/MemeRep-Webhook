@@ -43,7 +43,8 @@ def helius_webhook():
 
 def send_telegram(msg):
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": TG_CHAT, "text": msg})
+    res = requests.post(url, data={"chat_id": TG_CHAT, "text": msg})
+    print("Telegram send:", res.status_code, res.text)
 
 def fetch_token_data(mint):
     try:
