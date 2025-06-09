@@ -40,7 +40,7 @@ def helius_webhook():
                     mc, holders_proxy = fetch_token_data(mint)
                     print(f"🔍 Mint: {mint}, MC: {mc}, Holders: {holders_proxy}")
                     if mc is not None and holders_proxy is not None:
-                        if mc < 50_000 and holders_proxy > 100:
+                        if mc < 10_000 and holders_proxy > 50:
                             print(f"📤 Condición cumplida, enviando Telegram para mint: {mint}")
                             send_telegram(f"🔔 Nueva memecoin detectada:\nMint: {mint}\nMarket Cap: ${mc:,.0f}\nHolders aprox: {holders_proxy}")
 
