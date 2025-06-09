@@ -1,11 +1,18 @@
 import os
-import requests
 from flask import Flask, request, abort
+import requests
+import logging
 
 app = Flask(__name__)
 
 TG_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TG_CHAT = os.getenv("TELEGRAM_CHAT_ID")
+
+logging.basicConfig(level=logging.INFO)
+
+@app.route('/')
+def home():
+    return "Webhook activo"
 
 @app.route('/helius-webhook', methods=['POST'])
 def helius_webhook():
@@ -14,31 +21,27 @@ def helius_webhook():
         abort(401)
 
     data = request.get_json()
+    logging.info(f"📥 Webhook recibido: {data}")
+
     for tx in data:
-        if not isinstance(tx, dict):
-            continue
+        instructions = []
+        if "transaction" in tx and "message" in tx["transaction"]:
+            instructions = tx["transaction"]["message"].get("instructions", [])
+        elif "instructions" in tx:
+            instructions = tx.get("instructions", [])
 
-        if "instructions" in tx:
-            insts = tx["instructions"]
-        elif "transaction" in tx and "message" in tx["transaction"]:
-            insts = tx["transaction"]["message"].get("instructions", [])
-        else:
-            continue
-
-        for inst in insts:
+        for inst in instructions:
             if inst.get("program") == "spl-token":
                 info = inst.get("parsed", {}).get("info", {})
                 mint = info.get("mint")
                 if mint:
-                    msg = f"🚨 PRUEBA: Recibido TOKEN_MINT, mint: {mint}"
-                    print(msg)
-                    res = requests.post(
-                        f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
-                        data={"chat_id": TG_CHAT, "text": msg}
-                    )
-                    print("Telegram test send:", res.status_code, res.text)
+                    send_telegram(f"🔔 Token detectado:\nMint: {mint}")
+
     return "", 200
 
-@app.route('/')
-def home():
-    return "MemeRep Webhook activo 🚀"
+def send_telegram(msg):
+    url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
+    try:
+        requests.post(url, data={"chat_id": TG_CHAT, "text": msg})
+    except Exception as e:
+        logging.error(f"Error al enviar mensaje a Telegram: {e}")
